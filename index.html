@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>運用AI與VR擬真技術建置校園3D虛擬空間-以多媒體動畫系為例</title>
+    <style>
+        /* 根據校網截圖重新定義台南應用科技大學色系變數 */
+        :root {
+            --tut-primary-purple: #7a438d;  /* 官網頂部的優雅紫色 (主視覺/頁首/頁尾) */
+            --tut-purple-hover: #603470;    /* 紫色 Hover 狀態 */
+            --tut-accent-orange: #f0932b;   /* 海報中強調日期與細節的暖橘色 (按鈕/強調色) */
+            --tut-orange-hover: #e58e26;    /* 暖橘色 Hover 狀態 */
+            --tut-highlight-gold: #f9ca24;  /* 點綴亮黃色 (計畫來源等) */
+            --bg-color: #F8F9FA;
+            --text-color: #333333;
+        }
+
+        /* 基礎重置與全域設定 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft JhengHei", "PingFang TC", sans-serif;
+        }
+        
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        /* 頂部導覽列 */
+        header {
+            background-color: var(--tut-primary-purple);
+            position: fixed;
+            top: 0;
+            width: 100%;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+
+        nav {
+            display: flex;
+            gap: 20px;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-size: 1.1rem;
+            font-weight: bold;
+            padding: 10px 20px;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        nav a:hover {
+            background-color: var(--tut-purple-hover);
+        }
+
+        /* 網頁主視覺標題區塊 */
+        .hero-section {
+            margin-top: 60px;
+            background-color: var(--tut-primary-purple);
+            color: white;
+            text-align: center;
+            padding: 60px 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        /* 計畫來源標題樣式 */
+        .hero-section .sponsor {
+            font-size: 1.2rem;
+            color: var(--tut-highlight-gold); 
+            margin-bottom: 15px;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+
+        .hero-section h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+
+        .hero-section h2 {
+            font-size: 1.5rem;
+            color: #E2E8F0;
+            font-weight: normal;
+        }
+
+        /* 計畫基本資訊框 */
+        .project-meta {
+            margin-top: 30px;
+            font-size: 1.1rem;
+            color: white;
+            display: inline-block;
+            text-align: left;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 15px 30px;
+            border-radius: 8px;
+            border-left: 5px solid var(--tut-accent-orange);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .project-meta p {
+            margin: 5px 0;
+            letter-spacing: 1px;
+        }
+
+        /* 區塊共同設定 */
+        section {
+            padding: 80px 20px 50px; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        section h2 {
+            font-size: 2rem;
+            margin-bottom: 30px;
+            color: var(--tut-primary-purple);
+            border-bottom: 3px solid var(--tut-accent-orange);
+            padding-bottom: 10px;
+        }
+
+        .content-container {
+            max-width: 1000px;
+            width: 100%;
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        /* 3D 虛擬空間展示區塊設計 */
+        .iframe-container {
+            display: flex;
+            flex-direction: column;
+            gap: 50px; 
+            width: 100%;
+        }
+
+        .iframe-wrapper {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .iframe-wrapper h3 {
+            text-align: center;
+            margin-bottom: 5px;
+            color: var(--tut-primary-purple);
+        }
+
+        /* 操作提示文字 */
+        .instruction-text {
+            color: #666666;
+            font-size: 0.95rem;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        /* 限制 iframe 外層以利定位遮罩 */
+        .iframe-box {
+            position: relative;
+            width: 100%;
+        }
+
+        iframe {
+            width: 100%;
+            height: 550px;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        /* Luma 浮水印覆蓋遮罩 */
+        .watermark-cover {
+            position: absolute;
+            bottom: 22px; 
+            right: 15px; 
+            width: 280px; 
+            padding: 10px 0;
+            background-color: white;
+            border-radius: 30px;
+            font-size: 15px;
+            font-weight: bold;
+            color: var(--tut-primary-purple);
+            text-align: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            pointer-events: none; 
+            z-index: 10;
+        }
+
+        /* 外部連結按鈕設計 */
+        .walk-btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 12px 30px;
+            background-color: var(--tut-accent-orange);
+            color: white;
+            text-decoration: none;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 5px;
+            box-shadow: 0 4px 6px rgba(240, 147, 43, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .walk-btn:hover {
+            background-color: var(--tut-orange-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(229, 142, 38, 0.4);
+        }
+
+        /* 聯絡資訊樣式 */
+        .contact-info {
+            font-size: 1.2rem;
+            text-align: center;
+        }
+        
+        .contact-info p {
+            margin-bottom: 15px;
+        }
+
+        /* 頁尾 */
+        footer {
+            text-align: center;
+            padding: 20px;
+            background-color: var(--tut-primary-purple);
+            color: white;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 導覽列 -->
+    <header>
+        <nav>
+            <a href="#hero">計畫介紹</a>
+            <a href="#vr-space">3D虛擬空間</a>
+            <a href="#contact">聯絡資訊</a>
+        </nav>
+    </header>
+
+    <!-- 網頁標題區塊 -->
+    <div id="hero" class="hero-section">
+        <div class="sponsor">教育部115年度提昇師資素質獎助經費研究計畫</div>
+        <h1>計畫名稱：運用AI與VR擬真技術建置校園3D虛擬空間</h1>
+        <h2>—以多媒體動畫系為例—</h2>
+        
+        <!-- 計畫基本資訊框 -->
+        <div class="project-meta">
+            <p><strong>計畫主持人：</strong>謝旻儕</p>
+            <p><strong>計畫執行期間：</strong>民國 115 年 1 月 1 日 ~ 民國 115 年 6 月 30 日</p>
+        </div>
+    </div>
+
+    <!-- 計畫介紹 -->
+    <section id="intro">
+        <div class="content-container">
+            <p>隨著人工智慧與三維建模技術的快速發展，本展示平台突破傳統靜態環景影像的限制，帶來具備高層次3D擬真化與互動化的沉浸式體驗。</p>
+            <br>
+            <p>本計畫導入Neural Radiance Field (NeRF) AI影像重建技術，透過特定的智慧型行動載具拍攝，即可建置出包含幾何深度與真實光影細節的完整三維空間。使用者能以第一人稱視角自由穿梭於校園特色教室中，獲得宛如親臨現場的數位導覽體驗。</p>
+        </div>
+    </section>
+
+    <!-- 3D虛擬空間 -->
+    <section id="vr-space">
+        <h2>3D虛擬空間</h2>
+        <div class="content-container iframe-container">
+            
+            <!-- 第一個模型: D104 -->
+            <div class="iframe-wrapper">
+                <h3>D104 動捕系統教室</h3>
+                <p class="instruction-text">💡 提示：如欲體驗更完整的空間走動效果，請點擊下方按鈕進入獨立視窗操作。</p>
+                
+                <div class="iframe-box">
+                    <iframe src="https://lumalabs.ai/embed/AD2470C4-C641-4EEF-9A78-2B0D7A3855BA" allowfullscreen="true" title="D104 動捕系統教室"></iframe>
+                    <!-- 視覺遮罩：覆蓋作者標籤 -->
+                    <div class="watermark-cover">3D 導覽展示</div>
+                </div>
+                
+                <!-- 獨立視窗走動按鈕 -->
+                <a href="https://lumalabs.ai/capture/AD2470C4-C641-4EEF-9A78-2B0D7A3855BA" target="_blank" class="walk-btn">
+                    🚀 進入 D104 空間走動
+                </a>
+            </div>
+
+            <!-- 第二個模型: D105 -->
+            <div class="iframe-wrapper">
+                <h3>D105 沉浸式展演空間</h3>
+                <p class="instruction-text">💡 提示：如欲體驗更完整的空間走動效果，請點擊下方按鈕進入獨立視窗操作。</p>
+                
+                <div class="iframe-box">
+                    <iframe src="https://lumalabs.ai/embed/9A1C9FF8-00D2-4021-8318-12B52AF1DBF9" allowfullscreen="true" title="D105 沉浸式展演空間"></iframe>
+                    <!-- 視覺遮罩：覆蓋作者標籤 -->
+                    <div class="watermark-cover">3D 導覽展示</div>
+                </div>
+                
+                <!-- 獨立視窗走動按鈕 -->
+                <a href="https://lumalabs.ai/capture/9A1C9FF8-00D2-4021-8318-12B52AF1DBF9" target="_blank" class="walk-btn">
+                    🚀 進入 D105 空間走動
+                </a>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- 聯絡資訊 -->
+    <section id="contact">
+        <h2>聯絡資訊</h2>
+        <div class="content-container contact-info">
+            <p><strong>台南應用科技大學</strong></p>
+            <p>多媒體與動畫系 副教授</p>
+            <p>Email：shiehminchai@gmail.com</p>
+            <p>辦公室聯絡電話：06-2532106 # 5193</p>
+        </div>
+    </section>
+
+    <footer>
+        &copy; 2026 運用AI與VR擬真技術建置校園3D虛擬空間—以多媒體動畫系為例. All rights reserved.
+    </footer>
+
+</body>
+</html>
